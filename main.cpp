@@ -101,7 +101,6 @@ void drawTaskCompleteAnimation();
 void drawDebugInfo();
 void handleDebug();
 void handleReset();
-void handleServoTest();
 void checkDebugButton();
 void prepareWiFiForRetry(unsigned long delayMs = 0);
 void onWiFiConnectionFailure(const String& reason);
@@ -127,8 +126,7 @@ void setup() {
   
   // Initialize components
   setupDisplay();
-  setupServo();
-  
+ 
   // Initialize preferences
   preferences.begin("tabbie", false);
   
@@ -694,16 +692,7 @@ void handleAnimation() {                //ОЧИСТИТЬ ФУНКЦИЮ ОТ �
       currentAnimation = newAnimation;
       currentTask = newTask;
       animationStartTime = millis();
-      
-      // KEY: Set flag so servo activates immediately on first loop!
-      animationTriggeredViaAPI = true;
-      idleLoopCount = 0; // Reset loop counter
-      
-      // Start servo at center
-      currentServoPos = SERVO_CENTER;
-      targetServoPos = SERVO_CENTER;
-      neckServo.write(SERVO_CENTER);
-      
+  
       // Focus mode timer
       if (newAnimation == "focus" && durationSeconds > 0) {
         focusStartTime = millis();
