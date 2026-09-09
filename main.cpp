@@ -140,8 +140,6 @@ void setup() {
 }
 
 void setupDisplay() {
-  Wire.begin(21, 22);
-  
   display.begin();
   display.clearBuffer();
   // Don't show "Starting..." text - just clear the display
@@ -702,11 +700,8 @@ void handleAnimation() {                //ОЧИСТИТЬ ФУНКЦИЮ ОТ �
         focusDuration = 0;
         focusHalfwayDone = false;
       }
-      
-      // Paused mode timer
-      if (newAnimation == "paused") {
-        lastPausedShakeTime = millis();
-      }
+
+      hasCompletedStartup = true; // Возвращает лицо в рабочий режим, если была заставка
       
       Serial.print("🎬 Animation set: ");
       Serial.print(currentAnimation);
