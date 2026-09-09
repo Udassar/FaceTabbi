@@ -38,8 +38,11 @@ String currentAnimation = "startup";
 String currentTask = "";
 unsigned long animationStartTime = 0;
 unsigned long startupTime = 0;
+unsigned long focusStartTime = 0;
+unsigned long focusDuration = 0;
 bool hasCompletedStartup = false;
 bool isInSetupMode = false;
+bool focusHalfwayDone = false;
 String wifiStatus = "disconnected";
 String lastError = "";
 
