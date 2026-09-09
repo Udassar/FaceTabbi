@@ -1,8 +1,7 @@
-#include <Wire.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
-#include <U8g2lib.h>                        //ИЗМЕНИТЬ
+#include <U8g2lib.h>                        
 #include <Preferences.h>
 #include <ESPmDNS.h>
 #include <DNSServer.h>
@@ -15,8 +14,15 @@
 #include "startup01.h"
 #include "angry_bitmap.h"  // Keep angry as static image
 
-/ OLED display configuration - Using U8g2 with SH1106 driver
-U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);         //ИЗМЕНИТЬ
+// Новые пины круглого дисплея GC9A01 (240x240)
+#define PIN_SPI_SCL 12
+#define PIN_SPI_SDA 11
+#define PIN_SPI_RES 10
+#define PIN_SPI_DC   9
+#define PIN_SPI_CS  13
+
+// Инициализация круглого цветного дисплея через аппаратный SPI
+U8G2_GC9A01_240X240_F_4W_HW_SPI display(U8G2_R0, PIN_SPI_CS, PIN_SPI_DC, PIN_SPI_RES);
 
 // Web server on port 80
 WebServer server(80);                       //ИЗМЕНИТЬ
