@@ -2,42 +2,10 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <ArduinoJson.h>
-#include <U8g2lib.h>
+#include <U8g2lib.h>                        //ИЗМЕНИТЬ
 #include <Preferences.h>
 #include <ESPmDNS.h>
 #include <DNSServer.h>
-#include <ESP32Servo.h>
-
-// ============================================
-// SERVO CONFIGURATION (SIMPLIFIED)
-// ============================================
-const int SERVO_PIN = 13;
-Servo neckServo;
-
-// Servo positions (degrees)
-const int SERVO_LEFT = 15;
-const int SERVO_CENTER = 90;
-const int SERVO_RIGHT = 165;
-
-// Servo movement
-int currentServoPos = SERVO_CENTER;
-int targetServoPos = SERVO_CENTER;
-const int SERVO_SPEED = 8; // degrees per step (lower = slower)
-
-// Flag: Was animation triggered via API? (forces servo active on first loop)
-bool animationTriggeredViaAPI = false;
-
-// For idle: track loops for automatic mode (every 4th loop)
-int idleLoopCount = 0;
-const int IDLE_SERVO_EVERY_N_LOOPS = 4;
-
-// For paused: shake timer
-unsigned long lastPausedShakeTime = 0;
-
-// For focus: progress tracking
-unsigned long focusStartTime = 0;
-unsigned long focusDuration = 0;
-bool focusHalfwayDone = false;
 
 // Animation data
 #include "idle01.h"
@@ -47,11 +15,11 @@ bool focusHalfwayDone = false;
 #include "startup01.h"
 #include "angry_bitmap.h"  // Keep angry as static image
 
-// OLED display configuration - Using U8g2 with SH1106 driver
-U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+/ OLED display configuration - Using U8g2 with SH1106 driver
+U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);         //ИЗМЕНИТЬ
 
 // Web server on port 80
-WebServer server(80);
+WebServer server(80);                       //ИЗМЕНИТЬ
 
 // DNS server for captive portal
 DNSServer dnsServer;
@@ -86,9 +54,9 @@ bool isDebugMode = false;
 unsigned long debugModeStartTime = 0;
 const unsigned long DEBUG_MODE_DURATION = 8000; // Show debug info for 8 seconds
 
-// Physical button for showing debug info
+/ Physical button for showing debug info
 // Using GPIO27 - safe pin that's not a strapping pin
-const int DEBUG_BUTTON_PIN = 27;
+const int DEBUG_BUTTON_PIN = 27;                        //ИЗМЕНИТЬ
 unsigned long lastButtonPress = 0;
 const unsigned long BUTTON_DEBOUNCE_MS = 300; // Debounce time
 
@@ -132,11 +100,6 @@ void checkDebugButton();
 void prepareWiFiForRetry(unsigned long delayMs = 0);
 void onWiFiConnectionFailure(const String& reason);
 
-// Servo functions
-void setupServo();
-void moveServoTo(int position);
-void updateServoMovement();
-
 void setup() {
   Serial.begin(115200);
   Serial.println("🤖 Tabbie Assistant Starting...");
@@ -144,7 +107,7 @@ void setup() {
   // Record startup time
   startupTime = millis();
   
-  // Setup debug button (GPIO0 = BOOT button on most ESP32 boards)
+  // Setup debug button (GPIO0 = BOOT button on most ESP32 boards)          //НАЙТИ СВЯЗЬ
   pinMode(DEBUG_BUTTON_PIN, INPUT_PULLUP);
   
   // CRITICAL: Clean WiFi state from any previous boot/mode
@@ -181,41 +144,7 @@ void setupDisplay() {
   // Startup animation will begin immediately in loop()
   display.sendBuffer();
   
-  Serial.println("✅ OLED Display initialized (U8g2 SH1106)");
-}
-
-void setupServo() {
-  ESP32PWM::allocateTimer(0);
-  neckServo.setPeriodHertz(50);
-  neckServo.attach(SERVO_PIN, 500, 2400);
-  neckServo.write(SERVO_CENTER);
-  currentServoPos = SERVO_CENTER;
-  targetServoPos = SERVO_CENTER;
-  Serial.println("✅ Servo initialized on GPIO " + String(SERVO_PIN));
-}
-
-// Move servo to position (sets target, updateServoMovement does the actual moving)
-void moveServoTo(int position) {
-  targetServoPos = constrain(position, SERVO_LEFT, SERVO_RIGHT);
-  Serial.print("🎯 Servo → ");
-  Serial.print(targetServoPos);
-  Serial.println("°");
-}
-
-// Call this in loop() - smoothly moves servo towards target
-void updateServoMovement() {
-  static unsigned long lastMove = 0;
-  if (millis() - lastMove < 10) return; // 10ms between steps
-  lastMove = millis();
-  
-  if (currentServoPos != targetServoPos) {
-    if (currentServoPos < targetServoPos) {
-      currentServoPos = min(currentServoPos + SERVO_SPEED, targetServoPos);
-    } else {
-      currentServoPos = max(currentServoPos - SERVO_SPEED, targetServoPos);
-    }
-    neckServo.write(currentServoPos);
-  }
+  Serial.println("✅ OLED Display initialized (U8g2 SH1106)");              //ИЗМЕНИТЬ
 }
 
 void loadWiFiCredentials() {
@@ -306,7 +235,7 @@ void handleWiFiConnection() {
 
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef ARDUINO_ARCH_ESP32                       //ЧТО ЗНАЧИТ?
     WiFi.setAutoConnect(true);
 #endif
     WiFi.begin(savedSSID.c_str(), savedPassword.c_str());
@@ -479,11 +408,9 @@ void setupWebServer() {
   server.on("/api/debug", HTTP_OPTIONS, handleCORS);
   server.on("/api/reset", HTTP_POST, handleReset);
   server.on("/api/reset", HTTP_OPTIONS, handleCORS);
-  server.on("/api/servo", HTTP_POST, handleServoTest);
-  server.on("/api/servo", HTTP_OPTIONS, handleCORS);
   server.on("/wifi", HTTP_GET, handleWiFiSettings);
   server.on("/wifi", HTTP_POST, handleWiFiConfig);
-  
+    
   server.begin();
   webServerStarted = true;
   Serial.println("✅ Web server started");
@@ -506,9 +433,6 @@ void loop() {
   
   // Update display animation (always runs, never blocked!)
   updateDisplay();
-  
-  // Update servo position (smooth movement towards target)
-  updateServoMovement();
   
   delay(5);
 }
@@ -743,7 +667,7 @@ void handleDebug() {
   server.send(200, "application/json", responseStr);
 }
 
-void handleAnimation() {
+void handleAnimation() {                //ОЧИСТИТЬ ФУНКЦИЮ ОТ СЕРВОПРИВОДОВ
   server.sendHeader("Access-Control-Allow-Origin", "*");
   server.sendHeader("Content-Type", "application/json");
   
@@ -806,55 +730,6 @@ void handleAnimation() {
     }
   } else {
     server.send(400, "application/json", "{\"error\":\"No data received\"}");
-  }
-}
-
-void handleServoTest() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Content-Type", "application/json");
-  
-  if (server.hasArg("plain")) {
-    JsonDocument doc;
-    DeserializationError error = deserializeJson(doc, server.arg("plain"));
-    
-    if (error) {
-      server.send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
-      return;
-    }
-    
-    int position = SERVO_CENTER;
-    
-    if (doc.containsKey("position")) {
-      if (doc["position"].is<int>()) {
-        position = doc["position"].as<int>();
-      } else if (doc["position"].is<const char*>()) {
-        String posName = doc["position"].as<const char*>();
-        if (posName == "left") position = SERVO_LEFT;
-        else if (posName == "right") position = SERVO_RIGHT;
-        else if (posName == "center") position = SERVO_CENTER;
-      }
-    }
-    
-    position = constrain(position, SERVO_LEFT, SERVO_RIGHT);
-    
-    // Move immediately
-    neckServo.write(position);
-    currentServoPos = position;
-    targetServoPos = position;
-    
-    Serial.print("🔧 Servo → ");
-    Serial.print(position);
-    Serial.println("°");
-    
-    JsonDocument response;
-    response["success"] = true;
-    response["position"] = position;
-    
-    String responseStr;
-    serializeJson(response, responseStr);
-    server.send(200, "application/json", responseStr);
-  } else {
-    server.send(400, "application/json", "{\"error\":\"No position specified\"}");
   }
 }
 
@@ -927,7 +802,7 @@ void checkDebugButton() {
 
 void drawDebugInfo() {
   display.clearBuffer();
-  display.setFont(u8g2_font_6x10_tf);
+  display.setFont(u8g2_font_6x10_tf);                   //ИЗМЕНИТЬ
   
   // Show different info based on connection state
   if (isInSetupMode) {
@@ -953,9 +828,9 @@ void drawDebugInfo() {
     display.drawStr(0, 10, "=== CONNECTED ===");
     
     // IP Address - the most important info!
-    display.setFont(u8g2_font_7x13B_tf); // Slightly bigger font for IP
+    display.setFont(u8g2_font_7x13B_tf); // Slightly bigger font for IP         //ИЗМЕНИТЬ
     display.drawStr(0, 26, WiFi.localIP().toString().c_str());
-    display.setFont(u8g2_font_6x10_tf);
+    display.setFont(u8g2_font_6x10_tf);                                       //ИЗМЕНИТЬ
     
     // WiFi name
     String ssidDisplay = WiFi.SSID();
@@ -1033,7 +908,7 @@ void drawConnecting() {
   frame++;
   
   display.clearBuffer();
-  display.setFont(u8g2_font_6x10_tf);
+  display.setFont(u8g2_font_6x10_tf);                 //ИЗМЕНИТЬ
   
   display.drawStr(0, 10, "Connecting...");
   
@@ -1053,9 +928,9 @@ void drawConnecting() {
   display.sendBuffer();
 }
 
-void drawConnected() {
+void drawConnected() {      
   display.clearBuffer();
-  display.setFont(u8g2_font_6x10_tf);
+  display.setFont(u8g2_font_6x10_tf);                //ИЗМЕНИТЬ
   
   display.drawStr(0, 10, "Connected!");
   display.drawStr(0, 24, WiFi.SSID().c_str());
@@ -1069,7 +944,7 @@ void drawError() {
   frame++;
   
   display.clearBuffer();
-  display.setFont(u8g2_font_6x10_tf);
+  display.setFont(u8g2_font_6x10_tf);                 //ИЗМЕНИТЬ
   
   display.drawStr(0, 10, "WiFi Error!");
   
@@ -1092,69 +967,6 @@ void drawError() {
   }
   
   display.sendBuffer();
-}
-
-void drawIdleAnimation() {
-  static int frame = 0;
-  static unsigned long lastFrameTime = 0;
-  static unsigned long lastStart = 0;
-  static bool servoActive = false;
-  
-  // Reset when animation restarts
-  if (animationStartTime != lastStart) {
-    frame = 0;
-    lastFrameTime = 0;
-    lastStart = animationStartTime;
-    
-    // If triggered via API, activate servo immediately!
-    if (animationTriggeredViaAPI) {
-      servoActive = true;
-      Serial.println("🔄 Idle started (API) - servo ACTIVE first loop");
-    } else {
-      servoActive = false;
-    }
-  }
-  
-  unsigned long now = millis();
-  if (now - lastFrameTime < IDLE01_FRAME_DELAY) return;
-  lastFrameTime = now;
-  
-  // Draw animation frame
-  display.clearBuffer();
-  const uint8_t* frameData = (const uint8_t*)pgm_read_ptr(&idle01_frames[frame]);
-  display.drawBitmap(0, 0, 128 / 8, 64, frameData);
-  display.sendBuffer();
-  
-  // Servo keyframes (when active)
-  // Idle keyframes: frame 25=left, 50=center, 75=right, 90=center
-  if (servoActive) {
-    if (frame == 25) moveServoTo(SERVO_LEFT);
-    else if (frame == 50) moveServoTo(SERVO_CENTER);
-    else if (frame == 75) moveServoTo(SERVO_RIGHT);
-    else if (frame == 90) moveServoTo(SERVO_CENTER);
-  }
-  
-  // Next frame
-  frame++;
-  if (frame >= IDLE01_FRAME_COUNT) {
-    frame = 0;
-    idleLoopCount++;
-    
-    // After first loop, clear API flag
-    if (animationTriggeredViaAPI) {
-      animationTriggeredViaAPI = false;
-      servoActive = false; // Next loops follow normal pattern
-      Serial.println("🔄 First loop done - returning to normal (every 4th loop)");
-    }
-    
-    // Normal mode: activate every 4th loop
-    if (!animationTriggeredViaAPI && idleLoopCount % IDLE_SERVO_EVERY_N_LOOPS == 0) {
-      servoActive = true;
-      Serial.println("🔄 Idle loop " + String(idleLoopCount) + " - servo active");
-    } else if (!animationTriggeredViaAPI) {
-      servoActive = false;
-    }
-  }
 }
 
 void drawFocusAnimation() {
@@ -1200,16 +1012,10 @@ void drawFocusAnimation() {
     // Servo nudge at 50% milestone
     if (currentMilestone == 2 && !focusHalfwayDone) {
       focusHalfwayDone = true;
-      moveServoTo(SERVO_LEFT);
       Serial.println("🎯 Focus 50% - servo nudge");
     }
   }
-  
-  // Return servo to center after nudge
-  if (focusHalfwayDone && now - milestoneShowTime > 500 && lastMilestoneShown == 2) {
-    moveServoTo(SERVO_CENTER);
-  }
-  
+    
   // Are we currently showing a milestone overlay?
   bool showingMilestone = (milestoneShowTime > 0 && now - milestoneShowTime < MILESTONE_DISPLAY_MS);
   
@@ -1222,7 +1028,7 @@ void drawFocusAnimation() {
     int remainingSec = (remaining % 60000) / 1000;
     
     // Milestone message at top
-    display.setFont(u8g2_font_6x10_tf);
+    display.setFont(u8g2_font_6x10_tf);                   //ИЗМЕНИТЬ
     const char* message = "";
     switch (lastMilestoneShown) {
       case 1: message = ">> 25% done >>"; break;
@@ -1271,7 +1077,7 @@ void drawRelaxAnimation() {
     frame = 0;
     lastFrameTime = 0;
     lastStart = animationStartTime;
-    Serial.println("🔄 Break animation started - servo active every loop");
+    Serial.println("🔄 Break animation started");
   }
   
   unsigned long now = millis();
@@ -1283,11 +1089,6 @@ void drawRelaxAnimation() {
   const uint8_t* frameData = (const uint8_t*)pgm_read_ptr(&relax01_frames[frame]);
   display.drawBitmap(0, 0, 128 / 8, 64, frameData);
   display.sendBuffer();
-  
-  // Servo keyframes: 40=left, 50=right, 60=center (every loop)
-  if (frame == 40) moveServoTo(SERVO_LEFT);
-  else if (frame == 50) moveServoTo(SERVO_RIGHT);
-  else if (frame == 60) moveServoTo(SERVO_CENTER);
   
   frame++;
   if (frame >= RELAX01_FRAME_COUNT) frame = 0;
@@ -1315,14 +1116,7 @@ void drawLoveAnimation() {
   const uint8_t* frameData = (const uint8_t*)pgm_read_ptr(&love01_frames[frame]);
   display.drawBitmap(0, 0, 128 / 8, 64, frameData);
   display.sendBuffer();
-  
-  // Servo keyframes: 5=left, 15=right, 25=left, 35=right, 45=center
-  if (frame == 5) moveServoTo(SERVO_LEFT);
-  else if (frame == 15) moveServoTo(SERVO_RIGHT);
-  else if (frame == 25) moveServoTo(SERVO_LEFT);
-  else if (frame == 35) moveServoTo(SERVO_RIGHT);
-  else if (frame == 45) moveServoTo(SERVO_CENTER);
-  
+   
   frame++;
   if (frame >= LOVE01_FRAME_COUNT) {
     // Play once, return to idle
@@ -1331,8 +1125,7 @@ void drawLoveAnimation() {
     currentTask = "";
     frame = 0;
     lastStart = 0;
-    moveServoTo(SERVO_CENTER);
-  }
+    }
 }
 
 void drawStartupAnimation() {
@@ -1349,17 +1142,12 @@ void drawStartupAnimation() {
   display.drawBitmap(0, 0, 128 / 8, 64, frameData);
   display.sendBuffer();
   
-  // Servo keyframes: 15=left, 30=right, 45=center
-  if (frame == 15) moveServoTo(SERVO_LEFT);
-  else if (frame == 30) moveServoTo(SERVO_RIGHT);
-  else if (frame == 45) moveServoTo(SERVO_CENTER);
-  
   frame++;
   if (frame >= STARTUP01_FRAME_COUNT) {
     hasCompletedStartup = true;
     currentAnimation = "idle";
     frame = 0;
-    moveServoTo(SERVO_CENTER);
+  
   }
 }
 
@@ -1380,16 +1168,6 @@ void drawAngryImage() {
     Serial.println("😠 Angry shake!");
   }
   
-  // Execute shake sequence
-  if (shakeStep > 0 && now - lastShakeStepTime >= 250) {
-    lastShakeStepTime = now;
-    switch (shakeStep) {
-      case 1: moveServoTo(SERVO_LEFT); shakeStep = 2; break;
-      case 2: moveServoTo(SERVO_RIGHT); shakeStep = 3; break;
-      case 3: moveServoTo(SERVO_LEFT); shakeStep = 4; break;
-      case 4: moveServoTo(SERVO_CENTER); shakeStep = 0; break;
-    }
-  }
 }
 
 void drawPomodoroAnimation() {
@@ -1436,8 +1214,6 @@ void drawTaskCompleteAnimation() {
   // Reset on start
   if (animationStartTime != lastStart) {
     frame = 0;
-    servoStep = 0;
-    lastServoTime = 0;
     lastStart = animationStartTime;
   }
   
@@ -1459,24 +1235,10 @@ void drawTaskCompleteAnimation() {
   }
   display.sendBuffer();
   
-  // Simple wiggle: left-right-left-right-center
-  unsigned long now = millis();
-  if (now - lastServoTime >= 200 && servoStep < 5) {
-    lastServoTime = now;
-    switch (servoStep) {
-      case 0: moveServoTo(SERVO_LEFT); break;
-      case 1: moveServoTo(SERVO_RIGHT); break;
-      case 2: moveServoTo(SERVO_LEFT); break;
-      case 3: moveServoTo(SERVO_RIGHT); break;
-      case 4: moveServoTo(SERVO_CENTER); break;
-    }
-    servoStep++;
-  }
-  
   // Return to idle after 5 seconds
   if (millis() - animationStartTime > 5000) {
     currentAnimation = "idle";
     currentTask = "";
-    moveServoTo(SERVO_CENTER);
+    
   }
 }
